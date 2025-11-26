@@ -1,0 +1,70 @@
+segmentation_task:
+  description: >
+    Analyze the following Korean text: "{korean_text}". 
+    Break it down into 5-10 distinct learning items.
+    Structure the output exactly as a JSON object with an "items" key.
+    Leave 'contextual_note' and 'difficulty_level' as empty strings for now.
+  expected_output: >
+    A JSON object with a list of items under the key "items".
+  agent: morphological_analyst
+
+enrichment_task:
+  description: >
+    Review the learning items extracted from the text: "{korean_text}". 
+    Add dictionary definitions and specific contextual notes explaining 
+    why this specific word form was used.
+    
+    Structure the output exactly as a JSON object with an "items" key.
+  expected_output: >
+    A JSON object with a list of items under the key "items".
+  agent: contextual_linguist
+  context: 
+    - segmentation_task
+
+scenario_generation_task:
+  description: >
+    You are receiving a 'Syllabus' (List of Korean Learning Items) from the previous task.
+    
+    YOUR GOAL: Create a complete Lesson Plan containing the original syllabus AND 3 Practice Scenarios.
+    
+    INSTRUCTIONS FOR SCENARIOS:
+    1.  **Analyze the Vocabulary:** Look at the 'korean_phrase' and 'contextual_note' of the items provided.
+    2.  **Design 3 Distinct Scenarios:**
+        * *Scenario A (Casual):* Daily life, friends, or family.
+        * *Scenario B (Formal):* Business, strangers, or elders.
+        * *Scenario C (Creative):* A dramatic or funny situation (e.g., K-Drama moment).
+    3.  **Mandatory Constraints:**
+        * Each scenario MUST be designed to force the user to use at least 2-3 of the provided learning items.
+        * In the 'target_items' field, list exactly which words from the syllabus are being tested in that scenario.
+        * The 'scenario_description' must be a clear setup (e.g., "You are late for a meeting...").
+    
+    OUTPUT FORMAT:
+    Return a single JSON object matching the 'LessonPlan' schema.
+    It must contain:
+    1. "syllabus": The exact data you received.
+    2. "practice_scenarios": Your new list of 3 scenarios.
+  expected_output: >
+    A valid LessonPlan JSON object containing both the Syllabus and ScenarioList.
+  agent: scenario_director
+
+evaluation_task:
+  description: >
+    Evaluate the user's input.
+    
+    CONTEXT:
+    - Scenario: {scenario_description}
+    - User Role: {user_role}
+    - Required Tone: {required_tone}
+    - Target Vocabulary: {target_items}
+    
+    USER INPUT: "{user_input}"
+    
+    EVALUATION CRITERIA:
+    1. **Accuracy:** Did they use the target vocabulary correctly?
+    2. **Tone:** Is the politeness level (Honorifics) appropriate for the role?
+    3. **Intent:** Did they achieve the goal of the scenario?
+    
+    If they failed, explain exactly why (e.g., "You used the casual form with a boss").
+  expected_output: >
+    A JSON object with score, is_correct boolean, and helpful feedback.
+  agent: evaluator_coach
