@@ -10,24 +10,38 @@ if 'lesson_plan' not in st.session_state:
     st.session_state.lesson_plan = None
 if 'feedback_history' not in st.session_state:
     st.session_state.feedback_history = {} # Store feedback per scenario ID
+if 'summary_text' not in st.session_state:
+    st.session_state.summary_text = None
 
 # --- Sidebar: Input ---
 with st.sidebar:
     st.title("🇰🇷 AI Tutor")
-    korean_input = st.text_area("Enter Korean Text", height=150)
+    content_area = st.text_input("Enter Content Area", placeholder="e.g., Geopolitics, Technology, Sports, Culture...")
     
-    if st.button("Generate Lesson"):
-        if korean_input:
-            with st.spinner("Agents are analyzing & designing scenarios..."):
+    if st.button("Find Story & Generate Lesson"):
+        if content_area:
+            with st.spinner("Agents are finding a story, analyzing & designing scenarios..."):
                 # Unified Call
-                result = st.session_state.tutor.run_tutor(korean_input)
+                result = st.session_state.tutor.run_tutor(content_area)
                 st.session_state.lesson_plan = result.pydantic
+                # Capture the curator summary (first task output) for display
+                st.session_state.summary_text = (
+                    result.tasks_output[0].raw.strip()
+                    if result.tasks_output and result.tasks_output[0].raw
+                    else None
+                )
         else:
-            st.warning("Please enter text first.")
+            st.warning("Please enter a content area first.")
 
 # --- Main Page ---
 if st.session_state.lesson_plan:
     lesson = st.session_state.lesson_plan
+    
+    # PART 0: Featured Story from Content Curator
+    if st.session_state.summary_text:
+        st.subheader("📰 Featured Story")
+        st.write(st.session_state.summary_text)
+        st.divider()
     
     # PART A: Reference Deck (Syllabus)
     st.subheader("📚 Vocabulary Breakdown")
@@ -84,4 +98,4 @@ if st.session_state.lesson_plan:
                 st.info(f"**Native Speaker would say:** {res.better_alternative}")
 
 else:
-    st.info("👈 Paste a Korean paragraph in the sidebar to start your session.")
+    st.info("👈 Enter a content area (e.g., Geopolitics, Technology, Sports) in the sidebar to start your session.")

@@ -1,6 +1,7 @@
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, task
 from models import Syllabus, LessonPlan, EvaluationResult
+from crewai_tools import SerperDevTool
 
 @CrewBase
 class KoreanTutorCrew:
@@ -9,6 +10,13 @@ class KoreanTutorCrew:
     tasks_config = 'config/tasks.yaml'
 
     # --- AGENTS ---
+   
+    @agent
+    def content_curator(self) -> Agent:
+        return Agent(config=self.agents_config['content_curator'], 
+        verbose=True,
+        tools=[SerperDevTool()])
+
     @agent
     def morphological_analyst(self) -> Agent:
         return Agent(config=self.agents_config['morphological_analyst'], verbose=True)
@@ -26,6 +34,10 @@ class KoreanTutorCrew:
         return Agent(config=self.agents_config['evaluator_coach'], verbose=True)
 
     # --- TASKS ---
+    @task
+    def curation_task(self) -> Task:
+        return Task(config=self.tasks_config['curation_task'], output_pydantic=Syllabus)
+
     @task
     def segmentation_task(self) -> Task:
         return Task(config=self.tasks_config['segmentation_task'], output_pydantic=Syllabus)
@@ -54,13 +66,13 @@ class KoreanTutorCrew:
     # --- WORKFLOWS ---
 
     # 1. The Unified "Lesson Creator" Flow
-    def run_tutor(self, korean_text: str):
+    def run_tutor(self, content_area: str):
         return Crew(
-            agents=[self.morphological_analyst(), self.contextual_linguist(), self.scenario_director()],
-            tasks=[self.segmentation_task(), self.enrichment_task(), self.scenario_generation_task()],
+            agents=[self.content_curator(), self.morphological_analyst(), self.contextual_linguist(), self.scenario_director()],
+            tasks=[self.curation_task(), self.segmentation_task(), self.enrichment_task(), self.scenario_generation_task()],
             process=Process.sequential,
             verbose=True
-        ).kickoff(inputs={'korean_text': korean_text})
+        ).kickoff(inputs={'content_area': content_area})
 
         # 2. The Interactive Evaluation Flow
     def run_evaluation(self, scenario_obj, user_input_str):
